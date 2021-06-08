@@ -1,0 +1,48 @@
+{
+  "name": "http-expose",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/server.js",
+  "bin": {
+    "expose": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc --build && tsc-alias",
+    "start": "tsc --build && tsc-alias && node ./dist/index.js",
+    "clean": "rm -rf node_modules && rm -rf dist && rm out && rm example-dist",
+    "reinstall": "npm run clean && npm install",
+    "test": "tsc-alias && jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage=true --coverageReporters='text-summary'"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/fs-extra": "^9.0.11",
+    "@types/jest": "^26.0.23",
+    "@types/marked": "^2.0.3",
+    "@types/mime-types": "^2.1.0",
+    "@types/mock-fs": "^4.13.0",
+    "@types/node": "^15.6.0",
+    "@types/yargs": "^17.0.0",
+    "jest": "^27.0.1",
+    "mock-fs": "^5.0.0",
+    "terminal-link": "^2.1.1",
+    "ts-jest": "^27.0.0",
+    "tsc-alias": "^1.2.11",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "chalk": "^4.1.1",
+    "fs-extra": "^10.0.0",
+    "http-terminator": "^3.0.0",
+    "liquidjs": "^9.25.0",
+    "marked": "^2.0.5",
+    "mime-types": "^2.1.30",
+    "space-lift": "^1.0.0",
+    "space-monad": "^1.0.0",
+    "tiny-typed-emitter": "^2.0.3",
+    "yaml": "^1.10.2",
+    "yargs": "^17.0.1"
+  }
+}
