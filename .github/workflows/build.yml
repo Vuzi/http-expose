@@ -1,0 +1,56 @@
+name: Build & test
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+
+  # Build the project
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the project on master
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.REPO_TOKEN }}
+      - name: Install nodeJs
+        uses: actions/setup-node@v2
+        with:
+          node-version: '15'
+      - name: Install & build the project
+        run: |
+          npm ci
+          npm run build
+      - name: Create the cache
+        uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ./*
+          key: release-${{ github.sha }}
+
+  # Create a pre-release
+  pre-release:
+    name: Pre-release
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Restore cache
+        uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ./*
+          key: release-${{ github.sha }}
+      - name: Create the Github prerelease
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.REPO_TOKEN }}
+          automatic_release_tag: latest
+          prerelease: true
+          title: Development Build
+          files: |
+            LICENSE.md
