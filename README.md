@@ -1,12 +1,23 @@
-# HTTP Expose
-🌍  Static HTTP server, useable through command line &amp; lib
+# HTTP Expose 🌐  
 
-## Usage
+<p align="center">
+   <img src="https://badgen.net/badge/Built%20With/NodeJs/3C873A?con=typescript">
+   <img src="https://badgen.net/badge/-/TypeScript/blue?icon=typescript&label">
+   <img src="https://github.com/vuzi/http-expose/actions/workflows/build.yml/badge.svg">
+</p>
+ 
+<p align="center">
+
+   <a href="https://www.npmjs.com/package/http-expose">
+      <img src="https://nodei.co/npm/http-expose.png?compact=true" />
+   </a>
+</p>
+
 
 To expose a folder `./example` on `htttp://localhost:8000` ↴
 
 ```shell
-$ http-expose ./example --port=8000
+$ expose ./example --port=8000
 ```
 
 And now your directory is accessible ↴
@@ -15,7 +26,7 @@ $ curl http://localhost:8000/my/file.txt
 this is my file content!
 ```
 
-And for more, see [usage](#command-line-arguments) 🚀
+And for more, see [usage](#command-line-usage) 🚀
 ## What's that?
 **HTTP Expose** is a very simple and lightweight **static HTTP server**. It can be used to expose a
 provided directory to the internet through HTTP. 🧙‍♂️ The exposed directory will handle range request,
@@ -31,10 +42,18 @@ It can also be used programmmatically to do exactly the exact same thing 💻
 - Usable in command line, and programatically
 - Simple to use & configure
 
-## Command line arguments
+## Lib usage
+TODO ⚠️
 
+## Command line usage
+
+Start with installing ↴
+```shell
+$ npm install -g http-expose
 ```
-$ expose-http -h
+List of available arguments ↴
+```
+$ expose -h
 
 Usage: http-expose <directory> [options]
 
