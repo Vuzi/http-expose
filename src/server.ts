@@ -276,20 +276,10 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
   }
 
   private getFileContent(file: string, range?: Range): Readable {
-
      if (range) 
       return fs.createReadStream(file).pipe(slice(range.from, range.to + 1))  
      else
       return fs.createReadStream(file)
-
-     /* fs.createReadStream(file).pipe(slice(range?.from, range?.to)).pipe(zlib.createGzip())
-
-      const buffer = await promises.readFile(file)
-  
-      if (range)
-        return buffer.slice(range.from, range.to + 1)
-      else
-        return buffer*/
   }
   
   private getEtag(file: Stats): string {
