@@ -1,0 +1,48 @@
+name: Pull request validation
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  # Build the project
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the project on master
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.REPO_TOKEN }}
+      - name: Install nodeJs
+        uses: actions/setup-node@v2
+        with:
+          node-version: '15'
+      - name: Install & build the project
+        run: |
+          npm ci
+          npm run build
+      - name: Create the cache
+        uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ./*
+          key: pr-${{ github.sha }}
+
+  # Run the tests
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Restore cache
+        uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ./*
+          key: pr-${{ github.sha }}
+      - name: Run the tests
+        run: echo TODO
