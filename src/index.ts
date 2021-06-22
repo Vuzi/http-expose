@@ -4,6 +4,7 @@ import { hideBin } from 'yargs/helpers'
 import Log from '@root/logger'
 import { StaticServer } from '@root/server'
 
+
 async function main() {
 
   Log.info('Starting the application 🚀')

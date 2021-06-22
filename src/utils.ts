@@ -1,5 +1,5 @@
-import zlib from 'zlib'
 import { Transform, TransformCallback, TransformOptions } from 'stream'
+
 
 export type Timer = [number, number]
 
@@ -20,46 +20,48 @@ export class Slice extends Transform {
 
   _start
   _end
-  _offset = 0;
-  _state = 0;
+  _offset = 0
+  _state = 0
 
-  _emitUp = false;
-  _emitDown = false;
+  _emitUp = false
+  _emitDown = false
   
   constructor(start?: number, end?: number, opts?: TransformOptions & { lenght: number }) {
     super({ ...opts })
 
-    this._start = start || 0;
-    this._end = end || Infinity;
+    this._start = start || 0
+    this._end = end || Infinity
   }
 
   _transform(chunk: any, _: string, done: TransformCallback) {
-    this._offset += chunk.length;
+    this._offset += chunk.length
+
     if (!this._emitUp && this._offset >= this._start) {
-      this._emitUp = true;
-      var start = chunk.length - (this._offset - this._start);
-      if(this._offset > this._end)
-      {
-          var end = chunk.length - (this._offset - this._end);
-          this._emitDown = true;
-          this.push(chunk.slice(start, end));
+      this._emitUp = true
+      const start = chunk.length - (this._offset - this._start)
+
+      if(this._offset > this._end) {
+          var end = chunk.length - (this._offset - this._end)
+          this._emitDown = true
+          this.push(chunk.slice(start, end))
+      } else {
+          this.push(chunk.slice(start, chunk.length))
       }
-      else
-      {
-          this.push(chunk.slice(start, chunk.length));
-      }
-      return done();
+
+      return done()
     }
+
     if (this._emitUp && !this._emitDown) {
       if (this._offset >= this._end) {
-        this._emitDown = true;
-        this.push(chunk.slice(0, chunk.length - (this._offset - this._end)));
+        this._emitDown = true
+        this.push(chunk.slice(0, chunk.length - (this._offset - this._end)))
       } else {
-        this.push(chunk);
+        this.push(chunk)
       }
-      return done();
+      return done()
     }
-    return done();
+
+    return done()
   }
   
 }

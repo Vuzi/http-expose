@@ -1,7 +1,5 @@
-
 import chalk from 'chalk'
 
-export type Timer = [number, number]
 
 const Log = {
   info(...message: any[]) {
@@ -18,13 +16,6 @@ const Log = {
   },
   text(...text: any) {
     console.log(...text)
-  },
-  startTimer(): Timer {
-    return process.hrtime()
-  },
-  stopTimer(t: Timer): number {
-    const end = process.hrtime(t)
-    return (end[0] + (end[1] / 1e9))
   }
 }
 
