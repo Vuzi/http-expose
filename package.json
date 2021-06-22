@@ -1,10 +1,14 @@
 {
   "name": "http-expose",
   "version": "0.1.0",
-  "description": "",
+  "description": "Static HTTP server, useable through command line & as a lib",
   "main": "./dist/server.js",
   "bin": {
     "expose": "./dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vuzi/http-expose.git"
   },
   "scripts": {
     "build": "tsc --build && tsc-alias",
