@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
+    "declaration": true,
     "rootDirs": [
       "src",
       "tests"
@@ -17,5 +18,8 @@
       "@root/*": ["./*"]
     }
   },
-  "exclude": ["./tests"]
+  "exclude": [
+    "./tests",
+    "./dist"
+  ]
 }

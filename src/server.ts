@@ -18,6 +18,7 @@ const RANGE_REGEX = /bytes=(\d+)?-(\d+)?/
 interface ServerEvents {
   'start': (host: string, port: number, source: string) => void
   'error': (path: string, e: AppError, time: number) => void
+  'failure': (error: Error) => void,
   'response': (path: string, r: Response, time: number) => void
   'request': (req: IncomingMessage) => void
 }
@@ -82,7 +83,7 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
     this.source = conf.source
     this.noCache = conf.noCache
     this.allowedOrigins = conf.allowedOrigins.find(v => v === '*') ? [] : conf.allowedOrigins
-    this.directory = path.join(__dirname, conf.source)
+    this.directory = path.normalize(conf.source)
     this.serverOrigin = `http://${conf.host}:${conf.port}`
 
     this.encoders = {
@@ -94,12 +95,16 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
   }
 
   start(): void {
-     this.server = http.createServer((req, res) => this.handleRequest(req, res))
-     this.terminator = createHttpTerminator({ server: this.server })
+    try {
+      this.server = http.createServer((req, res) => this.handleRequest(req, res))
+      this.terminator = createHttpTerminator({ server: this.server })
 
-     this.server.listen(this.port, this.host, () => {
-      this.emit('start', this.host, this.port, this.source)
-    })
+      this.server.listen(this.port, this.host, () => {
+        this.emit('start', this.host, this.port, this.source)
+      })
+    } catch (e) {
+      this.emit('failure', e)
+    }
   }
 
   async stop(): Promise<void> {
