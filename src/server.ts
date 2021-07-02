@@ -99,6 +99,11 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
       this.server = http.createServer((req, res) => this.handleRequest(req, res))
       this.terminator = createHttpTerminator({ server: this.server })
 
+      this.server.on('error', e => {
+        this.emit('failure', e)
+        this.stop()
+      })
+
       this.server.listen(this.port, this.host, () => {
         this.emit('start', this.host, this.port, this.source)
       })
