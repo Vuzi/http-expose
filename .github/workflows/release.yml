@@ -106,5 +106,6 @@ jobs:
       - name: Pull the changes
         run: git pull
       - name: Publish the NPM release
+        uses: JS-DevTools/npm-publish@v1
         with:
           token: ${{ secrets.NPM_TOKEN }}
