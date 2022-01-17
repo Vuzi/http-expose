@@ -1,6 +1,6 @@
 {
   "name": "http-expose",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Static HTTP server, useable through command line & as a lib",
   "main": "./dist/server.js",
   "bin": {
