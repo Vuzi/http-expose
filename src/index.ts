@@ -31,6 +31,11 @@ async function main() {
         description: 'HTTP host',
         default: 'localhost'
       })
+      .option('listdir', {
+        type: 'boolean',
+        description: 'List directory content',
+        default: false
+      })
       .option('nocache', {
         type: 'boolean',
         description: 'Disable caching',
@@ -50,13 +55,16 @@ async function main() {
 
   const host = args.host
   const port = args.port
-  const source = args._[0] + ''
+  const source = (args._[0] || '.') + ''
   const verbose = args['verbose']
+  const listDir = args['listdir']
   const noCache = args['nocache']
   const corsOrigins = args['cors-allow-origin'].split(',').map(o => o.trim()).filter(o => o !== '')
     
   if (verbose) {
     Log.verbose('Verbose mode activated 📃')
+    if (listDir)
+      Log.verbose('Directory listing enabled')
     if (noCache)
       Log.verbose('No cache option enabled')
     if (args['cors-allow-origin'] !== '*')
@@ -67,6 +75,7 @@ async function main() {
     host,
     port,
     source,
+    listDir,
     noCache: noCache,
     allowedOrigins: corsOrigins
   })

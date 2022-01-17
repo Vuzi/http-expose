@@ -5,13 +5,11 @@ import { URL } from 'url'
 import crypto from 'crypto'
 import zlib from 'zlib'
 import { Readable, Transform } from 'stream'
-
 import { TypedEmitter } from 'tiny-typed-emitter'
 import mime from 'mime-types'
 import { createHttpTerminator, HttpTerminator } from 'http-terminator'
 
-import { startTimer, stopTimer, slice } from '@root/utils'
-
+import { startTimer, stopTimer, slice, humanReadableFilesize } from '@root/utils'
 
 const RANGE_REGEX = /bytes=(\d+)?-(\d+)?/
 
@@ -39,6 +37,14 @@ export interface Response {
   content?: Readable
 }
 
+interface DirectoryElement {
+  filename: string
+  filepath: string
+  size: number,
+  created: Date,
+  isDirectory: boolean
+}
+
 function isAppError(e: any): e is AppError {
   return (e as AppError).code !== undefined
 }
@@ -55,6 +61,7 @@ interface Encoder {
 export interface ServerConfig {
   host: string
   port: number
+  listDir: boolean
   allowedOrigins: string[]
   noCache: boolean
   source: string
@@ -66,6 +73,7 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
   port: number
   source: string
   serverOrigin: string
+  listDir: boolean
   noCache: boolean
   allowedOrigins: string[] // Empty if all origins are allowed
   directory: string
@@ -81,6 +89,7 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
     this.host = conf.host
     this.port = conf.port
     this.source = conf.source
+    this.listDir = conf.listDir
     this.noCache = conf.noCache
     this.allowedOrigins = conf.allowedOrigins.find(v => v === '*') ? [] : conf.allowedOrigins
     this.directory = path.normalize(conf.source)
@@ -107,7 +116,7 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
       this.server.listen(this.port, this.host, () => {
         this.emit('start', this.host, this.port, this.source)
       })
-    } catch (e) {
+    } catch (e: any) {
       this.emit('failure', e)
     }
   }
@@ -172,53 +181,123 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
       throw AppError.from(403, `Forbidden resource`)
   
     const file = await this.getFileInfo(target)
-    const etag = this.getEtag(file)
-    const encoding = (req.headers['accept-encoding'])?.toString().split(',').map(s => s.trim())
-    const range = req.headers.range !== undefined ? this.getRange(req, file) : undefined
-    const mimeType = mime.lookup(path.extname(target)) || 'application/octet-stream'
+
+    if (file.isFile()) {
+      const etag = this.getEtag(file)
+      const encoding = (req.headers['accept-encoding'])?.toString().split(',').map(s => s.trim())
+      const range = req.headers.range !== undefined ? this.getRange(req, file) : undefined
+      const mimeType = mime.lookup(path.extname(target)) || 'application/octet-stream'
+      
+      // Find any available encoder
+      const encoder = encoding?.map(e => this.encoders[e]).find(e => e !== undefined)
+
+      const commonHeaders: Record<string, string> = {
+        'Access-Control-Allow-Origin': this.allowedOrigins.length > 0 ? origin : '*',
+        'Accept-Ranges': 'bytes',
+        'Content-Type': mimeType,
+        'Cache-Control': 'public',
+        'ETag': `${etag}`,
+        'Last-Modified': new Date(file.mtime).toUTCString(),
+        ...(download ? { 'Content-Disposition': `attachment;filename=${path.basename(target)}` } : {})
+      }
+
+      if (range) {
+        let headers: Record<string, string> = {
+          ...commonHeaders,
+          'Content-Length': `${range.to - range.from + 1}`, // Because range is 0 indexed
+          'Content-Range': `bytes ${range.from}-${range.to}/${file.size}`
+        }
+
+        // Get the partial file content
+        const buffer = this.getFileContent(target, range)
+
+        return { code: 206, headers, content: buffer }
+      } else if (this.needFile(req, file, etag)) {
+        let headers: Record<string, string> = {
+          ...commonHeaders,
+          ...(encoder ?
+            { 'Content-Encoding': encoder.name } :
+            { 'Content-Length': `${file.size}` }
+          )
+        }
+
+        // If there's no cache, get the file content
+        const buffer = encoder ? this.getFileContent(target).pipe(encoder.encode()) : this.getFileContent(target)
     
-    // Find any available encoder
-    const encoder = encoding?.map(e => this.encoders[e]).find(e => e !== undefined)
-
-    const commonHeaders: Record<string, string> = {
-      'Access-Control-Allow-Origin': this.allowedOrigins.length > 0 ? origin : '*',
-      'Accept-Ranges': 'bytes',
-      'Content-Type': mimeType,
-      'Cache-Control': 'public',
-      'ETag': `${etag}`,
-      'Last-Modified': new Date(file.mtime).toUTCString(),
-      ...(download ? { 'Content-Disposition': `attachment;filename=${path.basename(target)}` } : {})
-    }
-
-    if (range) {
-      let headers: Record<string, string> = {
-        ...commonHeaders,
-        'Content-Length': `${range.to - range.from + 1}`, // Because range is 0 indexed
-        'Content-Range': `bytes ${range.from}-${range.to}/${file.size}`
+        return { code: 200, headers, content: buffer }
+      } else {
+        // File already cached
+        return { code: 304, headers: commonHeaders }
+      }
+    } else if (file.isDirectory() && this.listDir) {
+      const headers: Record<string, string> = {
+        'Access-Control-Allow-Origin': this.allowedOrigins.length > 0 ? origin : '*',
+        'Accept-Ranges': 'bytes',
+        'Content-Type': 'text/html; charset=utf-8'
       }
 
-      // Get the partial file content
-      const buffer = this.getFileContent(target, range)
+      const content = await this.getDirectoryContent(target)
+      const contentHtml = `
+        <html>
+          <header>
+            <title>Content of /${target}</title>
+          </header>
+          <body>
+            <h1>Content of /${target}</h1>
+            <ul>
+              ${this.parentElementToHtml(target)}
+              ${content.map(this.elementToHtml).join('')}
+            </ul>
+          </body>
+        </html>`
 
-      return { code: 206, headers, content: buffer }
-    } else if (this.needFile(req, file, etag)) {
-      let headers: Record<string, string> = {
-        ...commonHeaders,
-        ...(encoder ?
-          { 'Content-Encoding': encoder.name } :
-          { 'Content-Length': `${file.size}` }
-        )
-      }
-
-      // If there's no cache, get the file content
-      const buffer = encoder ? this.getFileContent(target).pipe(encoder.encode()) : this.getFileContent(target)
-  
-      return { code: 200, headers, content: buffer }
+      return { code: 200, headers, content: this.getStringContent(contentHtml) }
     } else {
-      // File already cached
-      return { code: 304, headers: commonHeaders }
+      throw AppError.from(400, `Invalid request (not a file)`)
     }
-  
+  }
+
+  private parentElementToHtml(dir: string) {
+    const relative = path.relative(this.source, dir)
+
+    if (relative === '') {
+      return ''
+    } else {
+      return `
+        <li>
+          🠔
+          <a href="/${path.dirname(relative)}">Parent Directory</a>
+        </li>
+      `
+    }
+  }
+
+  private elementToHtml(element: DirectoryElement) {
+    const icon = element.isDirectory ? '📁' : '📄'
+
+    return `
+      <li>
+        ${icon}
+        <a href="/${element.filepath}">${element.filename}</a> 
+        (${humanReadableFilesize(element.size)}) - Created ${element.created.toLocaleString()}
+      </li>`
+  }
+
+  private async getDirectoryContent(directory: string): Promise<DirectoryElement[]> {
+    const content = await promises.readdir(directory)
+
+    return await Promise.all(content.map(async filename => {
+      const filepath = path.join(directory, filename)
+      const stat = await promises.stat(filepath)
+
+      return {
+        filename,
+        filepath: path.relative(this.source, filepath),
+        size: stat.size,
+        created: stat.birthtime,
+        isDirectory: stat.isDirectory()
+      }
+    }))
   }
 
   private getRange(req: IncomingMessage, file: Stats): Range {
@@ -267,8 +346,8 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
   private async getFileInfo(file: string): Promise<Stats> {
     try {
       return await promises.stat(file)
-    } catch(e) {
-      if (e.code === 'ENOENT') {
+    } catch(e: any) {
+      if (e.code === 'ENOENT' || e.code === 'ENOTDIR') {
         // 404, not found
         throw AppError.from(404, `File not found`)
       } else if (e.code === 'EISDIR') {
@@ -276,7 +355,6 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
         throw AppError.from(400, `Invalid request (not a file)`)
       } else if (e.code === 'EPERM') {
         // 403
-        console.warn(e)
         throw AppError.from(403, `Forbidden resource`)
       } else {
         console.error(e)
@@ -291,6 +369,14 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
      else
       return fs.createReadStream(file)
   }
+
+  private getStringContent(value: string): Readable {
+    var stream = new Readable()
+    stream.push(value)
+    stream.push(null)
+
+    return stream
+  }
   
   private getEtag(file: Stats): string {
     return '"' + crypto
@@ -301,7 +387,7 @@ export class StaticServer extends TypedEmitter<ServerEvents> {
   
   private isSubDirectory(parent: string, dir: string): boolean {
     const relative = path.relative(parent, dir)
-    return !!(relative && !relative.startsWith('..') && !path.isAbsolute(relative))
+    return !!(!relative.startsWith('..') && !path.isAbsolute(relative))
   }
   
 }

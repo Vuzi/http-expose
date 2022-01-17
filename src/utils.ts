@@ -12,6 +12,11 @@ export function stopTimer(t: Timer): number {
   return (end[0]* 1000000000 + end[1]) / 1000000
 }
 
+export function humanReadableFilesize(size: number) {
+  const i = Math.floor(Math.log(size) / Math.log(1024))
+  return (size / Math.pow(1024, i)).toFixed(2) + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
+}
+
 export function slice(start?: number, end?: number) {
   return new Slice(start, end)
 }
