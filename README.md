@@ -40,6 +40,7 @@ It can also be used programmmatically to do exactly the exact same thing 💻
 - CORS
 - Gzip
 - Usable in command line, and programatically
+- Can list a directory content to facilitate navigation while debugging
 - Simple to use & configure
 
 ## Lib usage
@@ -65,6 +66,7 @@ Options:
   -h, --help               Show help                                   [boolean]
   -p, --port               HTTP port                      [number] [default: 80]
       --host               HTTP host             [string] [default: "localhost"]
+      --listdir            List directory content     [boolean] [default: false]
       --nocache            Disable caching            [boolean] [default: false]
       --cors-allow-origin  Cors allow origin setting     [string] [default: "*"]
       --verbose            Verbose                    [boolean] [default: false]
