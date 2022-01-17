@@ -32,7 +32,7 @@ jobs:
         id: restore-build
         with:
           path: ./*
-          key: release-${{ github.sha }}
+          key: build-${{ github.sha }}
 
   # TODO: Check that all the tests pass
 
@@ -48,7 +48,7 @@ jobs:
         id: restore-build
         with:
           path: ./*
-          key: release-${{ github.sha }}
+          key: build-${{ github.sha }}
       - name: Configure git user
         run: |
           git config --global user.name 'VuziBot'
