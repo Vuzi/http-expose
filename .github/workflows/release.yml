@@ -106,4 +106,5 @@ jobs:
       - name: Publish the NPM release
         uses: JS-DevTools/npm-publish@v1
         with:
+          tag: ${{ github.event.inputs.version }}
           token: ${{ secrets.NPM_TOKEN }}
